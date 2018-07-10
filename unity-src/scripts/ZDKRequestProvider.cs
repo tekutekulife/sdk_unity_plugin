@@ -15,9 +15,6 @@ namespace ZendeskSDK {
 		/// <param name="description">More detailed description of a problem</param>
 		public string Description;
 
-		// android only
-		/// <param name="email">End-user's email address (Android only)</param>
-		public string Email;
 //		public long TicketFormId;
 //		public Hashtable Metadata; // String map of String,String maps
 //		public Hashtable CustomFields; // list of Long,String pairs
@@ -27,21 +24,18 @@ namespace ZendeskSDK {
 			//
 		}
 
-		public ZDKCreateRequest(string email, string subject, string description) {
-			this.Email = email;
+		public ZDKCreateRequest(string subject, string description) {
 			this.Subject = subject;
 			this.Description = description;
 		}
 
-		public ZDKCreateRequest(string email, string subject, string description, string[] tags) {
-			this.Email = email;
+		public ZDKCreateRequest(string subject, string description, string[] tags) {
 			this.Subject = subject;
 			this.Description = description;
 			this.Tags = tags;
 		}
 
-		public ZDKCreateRequest(string email, string subject, string description, string[] tags, string[] attachments) {
-			this.Email = email;
+		public ZDKCreateRequest(string subject, string description, string[] tags, string[] attachments) {
 			this.Subject = subject;
 			this.Description = description;
 			this.Tags = tags;
@@ -77,7 +71,7 @@ namespace ZendeskSDK {
 				createRequest.Tags = new string[0];
 			if (createRequest.Attachments == null)
 				createRequest.Attachments = new string[0];
-			instance().Call("createRequest", callback, createRequest.Subject, createRequest.Description, createRequest.Email,
+			instance().Call("createRequest", callback, createRequest.Subject, createRequest.Description,
 			                createRequest.Tags, createRequest.Tags.Length,
 			                createRequest.Attachments, createRequest.Attachments.Length);
 		}

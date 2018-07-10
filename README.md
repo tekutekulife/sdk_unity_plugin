@@ -7,16 +7,8 @@ This is an open source project, and is not directly supported by Zendesk. Check 
 
 ## Requirements
 
-- Unity 5.x
-
-### OS requirements
-
-The Android build script, `./android-plugin/build.gradle`, requires the `zip` command which is commonly
-distributed on Linux and Unix based systems, including Mac OS.
-
-`zip.exe` is not distributed on Windows machines and must be [installed](http://gnuwin32.sourceforge.net/packages/zip.htm) and added to the PATH.
-
-Alternatively, the 7zip command line application, `7za.exe`, can be used to perform the same task. More details are in the `stripCssFromAndroidSdk` task in `./android-plugin/build.gradle`.
+- Unity 2018.1
+- Using the Gradle build system
 
 ### iOS requirements
 
@@ -28,29 +20,59 @@ Alternatively, the 7zip command line application, `7za.exe`, can be used to perf
 
 Most requirements will be downloaded automatically. You will have to ensure that some components are up to date in the Android SDK Manager.
 
-- Android API 15 (4.0.3) and above.
-- Android SDK Build-tools 24.0.0
+- Android API 16 (4.1) and above.
+- Android SDK Build-tools 27.0.1
 - Latest version of Android Support Repository
 
-## Basics
+## Integrating the Plugin
 
-1. Import the Zendesk Unity SDK into your Unity project
+0. **Note:** The refactoring of the build system is not yet complete. In future we will publish the 
+artifact for the Android plugin on a Maven repo and pull it in from there. Without that step in place,
+you are still required to build it locally, deploy it to some repo, and then pull it into 
+your Unity project from there. `android-plugin/build.gradle` is currently configured to deploy to 
+`file:///tmp/repo`.
 
-    * Import the `sdk_unity_plugin` project into Android Studio.
-    * Build the plugin with `./gradlew build`
-    * Copy the output of build/unity-plugin/ into your Unity app.
+1. Import the Zendesk Support SDK for Android into your Unity project 
 
+    * Confirm that your Unity project is using Gradle for Android. Player Settings -> Publishing 
+    Settings -> Build -> Build System.
+    * Tick the `Custom Gradle Template` checkbox.
+    * Open the Gradle file (by default, this is `Assets/Plugins/Android/mainTemplate.gradle`).
+    * Add the Zendesk repository to the `repositories` section:
+    ```groovy
+    repositories {
+    		maven { 
+    			url 'file:///tmp/repo'
+ 			}
+    	}
+    ``` 
+    * **Note:** As detailed in Step 0, this is currently configured to use a local tmp dir. This 
+    will be replaced in future with an online Maven repo.
+    
+2. Import the Zendesk Support SDK for iOS into your Unity project
+
+    * Copy the contents of `ios-plugin/setup-src` into `Assets/Plugins/iOS` in your Unity project.
+    * Copy the contents of `ios-plugin/src` into `Assets/Plugins/iOS` in your Unity project.  
+    
     You may see some errors like this: `Could not create texture from Assets/Plugins/iOS/ZendeskSDK.bundle/{name}.png: File could not be read`.
     These are safe to ignore and will disappear when you build the project for iOS. You also may need to ensure that the `MessageUI`, `Security` and `MobileCoreServices` frameworks have been added to the project that Unity exports to Xcode. These frameworks can be added by selecting the correct target in Xcode and then selecting the aforementioned frameworks in the `Linked Frameworks and Libraries` under the `General` tab.
+    
+3. Import the Zendesk Unity plugin scripts into your Unity project
+    
+    * Copy the contents of `unity-src/scripts` into `Assets/Plugins/Zendesk/Scripts` in your Unity 
+    project. 
 
-2. Viewing the samples
 
-    * Copy the scripts from `sample` and attach either one to a `GameObject` in your scene.
-    * Select a GameObject (MainCamera for example) from the Hierarchy window
-    * On the Inspector window, push the 'Add Component' button
-    * Select one of the sample scripts you copied.
+## Using the Plugin
 
-3. Creating your own class that uses Zendesk
+### Viewing the Sample 
+
+We provide a sample script called `ZendeskTester.cs` in the `sample` directory. 
+    
+    Copy this to your assets folder and attach it to a `GameObject` in your scene. When you run the scene, you should see 
+    a number of buttons provided by the script as a quick interface to the Support SDK. 
+
+### Creating your own class that uses Zendesk
 
     * To use the Zendesk SDK in Unity, you must create a class that extends `MonoBehaviour` and attach it to a `GameObject` in your scene.
     * Include the following two methods in your class:
@@ -68,11 +90,6 @@ Most requirements will be downloaded automatically. You will have to ensure that
     }
     ```
 
-4. Android manifest
-
-    * [MUST DO] One of the `<provider>` elements must be uncommented for the plugin to build correctly. See the documentation in `/Assets/Plugins/Android/AndroidManifest.xml`
-    * You may already have a file at `/Assets/Plugins/Android/AndroidManifest.xml`. If so, you will have to manually merge the items of that manifest with the one we supply in our plugin.  Specifically, your `<application>` tag must have the `android:theme="@style/UnityTheme"` attribute, and your `UnityPlayerActivity` (or derived class) `<activity>` entry must have `<meta-data android:name="unityplayer.ForwardNativeEventsToDalvik" android:value="true" />` as a child tag.
-
 
 ## App Configuration and Zendesk App Interfaces
 
@@ -85,22 +102,18 @@ Example C#:
     ZendeskSDK.ZDKRequests.ShowRequestCreation
     ZendeskSDK.ZDKRequests.ShowRequestCreationWithConfig(config)
 
-    ZendeskSDK.ZDKRMA.Show();
-    ZendeskSDK.ZDKRMA.ShowAlways();
-
-App configuration and the Zendesk App Help Center, Requests, and Rate My App interfaces
-can be found in the /Assets/Zendesk folder and are named:
+App configuration and the Zendesk Help Center and Requests interfaces can be found in the 
+`/Assets/Zendesk` folder and are named:
 
 * ZDKConfig.cs
 * ZDKHelpCenter.cs
 * ZDKRequests.cs
-* ZDKRMA.cs
 * ZDKPush.cs
 * ZDKLogger.cs
 
 ## Zendesk Data Providers
 
-The Zendesk SDK provider interfaces can be found in the /Assets/Zendesk folder and are named:
+The Zendesk SDK provider interfaces can be found in the `/Assets/Zendesk` folder and are named:
 
 * ZDKAvatarProvider.cs
 * ZDKHelpCenterProvider.cs
@@ -190,8 +203,13 @@ appearance.ApplyTheme ();
 
 ### Android
 
-Zendesk application customization must be specified before the Android Unity plugin is created with `./gradlew build`.
+By default, the Android Unity plugin uses a Material Design (`AppCompat`) light theme with a dark 
+ActionBar (`Toolbar`). The primary colour is blue and the accent is yellow (see `android-plugin/src/main/res/values/colors.xml`).
 
+To customize these values, you must edit this file as required, and then re-build and deploy the 
+android-plugin artifact. See [Rebuilding the Android Plugin](#rebuilding-the-android-plugin) for 
+details on how to do this. 
+   
 Include your style changes in:
 
 `/sdk_unity_plugin/android-plugin/src/main/res/values/styles.xml`
@@ -212,7 +230,8 @@ Custom Help Center articles are styled with CSS that can be specified in the fol
 
 ### Android
 
-On Android, this file must be edited before you create the plugin with `./gradlew build`
+On Android, any customization of the Help Center article CSS file must be done before the artifact is 
+built. See [Rebuilding the Android plugin](#rebuilding-the-android-plugin) for details on how to do this. The file is located at:
 
 `/sdk_unity_plugin/android-plugin/src/main/assets/help_center_article_style.css`
 
@@ -232,7 +251,8 @@ https://developer.zendesk.com/embeddables/docs/ios/localize_text
 
 ### Android
 
-Strings are specified in xml files, one for each Locale. Each locale is a separate `[Locale]` folder. On Android, these files must be edited before you create the plugin with `./gradlew build`
+Strings are specified in xml files, one for each Locale. Each locale is a separate `[Locale]` folder. 
+On Android, these files must be edited before the plugin is built. See [Rebuilding the Android plugin](#rebuilding-the-android-plugin). 
 
 `/Assets/Plugins/Android/zendesk-lib/res/values-[Locale]/strings.xml`
 
@@ -240,10 +260,65 @@ To find list of strings, see:
 
 https://developer.zendesk.com/embeddables/docs/android/localize_text
 
-## Known issues
+## Rebuilding the Android plugin
 
-1. When creating a ticket using Rate My App on Android, the description of the issue is used for the subject line of the ticket.
-2. On request creation on Android, rotating the screen during sending appears to cancel the ticket. The progress dialog will disappear and the ticket form will regain focus.
-However, the ticket will still be successfully created, and will be present in the user's ticket list, though it will be missing any attachments added before the rotation.
-3. Unity 3D fails to detect the Android SDK correctly when Android SDK Tools 25.3.1 is installed. Tracked on [code.google.com](https://code.google.com/p/android/issues/detail?id=235455).
-4. The SDK can crash when deployed onto Android 4.0.3 devices. This occurs when your application is built with the `Internal (default)` build system. Building with gradle will fix this issue.
+Some customizations will require you to alter values in the `android-plugin` source code, which means 
+that the published artifact of the plugin is not suitable for your project. You can re-build and 
+re-deploy the artifact to a Maven repo that you control, and then add this repository to your Unity
+project's Gradle file to pull the dependency from there instead. 
+
+**Note:** In this example, we use a local temp directory (`tmp/repo`), but it could be any Maven repo you can push/pull from. 
+
+1. Open up `android-plugin/build.gradle`, and find the `uploadArchives` task which defines the 
+repository it publishes to:
+
+    ```groovy
+    apply plugin: 'maven'
+    
+    afterEvaluate { project ->
+        uploadArchives {
+            repositories {
+                mavenDeployer {
+    
+                    snapshotRepository(url: "file:///tmp/repo")
+    
+                    repository(url: "file:///tmp/repo")
+    ```
+
+2. Customise `repository` (and/or `snapshotRepository`, if you are using a `-SNAPSHOT` build number)
+to alter where the artifact is deployed to. In this example, the values are both pointing to a local 
+temp repo. 
+
+3. Run `./gradlew uploadArchives` in a command line to publish the artifact to the specified location.
+
+4. In your Unity Project's custom Gradle file (`mainTemplate.gradle`), look for the `repositories` 
+section. It should look something like this:
+
+    ```groovy
+    repositories {
+           
+            google()
+            jcenter()
+    
+            maven {
+                url 'https://zendesk.jfrog.io/zendesk/repo'
+            }
+    
+            maven {
+                url 'https://oss.sonatype.org/content/repositories/snapshots'
+            }
+    
+        }
+    ```
+    
+5. Add the repo specified in the `uploadArchives` task just inside the `repositories` section, above 
+the other repos listed. In this example (the local Maven repo), this 
+would be:
+
+    ```groovy
+    maven { 
+    			url 'file:///tmp/repo'
+    }
+    ```
+    
+Your Unity project should now pull your customised dependency from your custom Maven repo.

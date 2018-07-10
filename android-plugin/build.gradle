@@ -4,15 +4,24 @@ apply plugin: 'com.android.library'
 
 buildscript {
     repositories {
-        mavenCentral()
+        google()
+        jcenter()
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:2.3.0'
+        classpath 'com.android.tools.build:gradle:3.1.4'
+    }
+}
+
+ext {
+    getConfigurationParameter = { keyName ->
+        return System.getenv(keyName) ?:
+                rootProject.hasProperty(keyName) ? rootProject.properties[keyName] : ''
     }
 }
 
 repositories {
+    google()
     jcenter()
     maven { url 'https://zendesk.artifactoryonline.com/zendesk/repo'}
 }
@@ -20,13 +29,12 @@ repositories {
 apply plugin: 'com.android.library'
 
 android {
-    compileSdkVersion 25
-    buildToolsVersion "25.0.2"
+    compileSdkVersion 27
 
     defaultConfig {
-        minSdkVersion 15
-        targetSdkVersion 25
-        versionName "1.11.0.1"
+        minSdkVersion 16
+        targetSdkVersion 27
+        versionName "2.2.1"
         vectorDrawables.useSupportLibrary = true
     }
     lintOptions {
@@ -41,89 +49,49 @@ dependencies {
         build if it is included locally because it results in duplicate definitions for particular
         Unity player activities.
      */
-    compile group: 'com.unity', name: 'player', version: '1.0.0.1'
+    compileOnly group: 'com.unity', name: 'player', version: '1.0.0.1'
 
     /*
      * The dependencies of the SDK artifact will be copied to the output directory in the packagePlugin
      * task.
      */
-    compile group: 'com.zendesk', name: 'sdk', version: '1.11.0.1'
+    implementation group: 'com.zendesk', name: 'support', version: '2.2.1'
 }
 
-task packagePlugin <<  {
+apply plugin: 'maven'
 
-    // AndroidManifest.xml
-    copy {
-        from "$rootDir/android-plugin/plugin-dependencies"
-        into "$rootProject.buildDir/unity-plugin/Plugins/Android"
-    }
+afterEvaluate { project ->
+    uploadArchives {
+        repositories {
+            mavenDeployer {
 
-    // AAR dependencies
-    copy {
-        from (configurations.compile) {
-            exclude 'player-*.jar' // Exclude the com.unity:player JAR
+                snapshotRepository(url: "file:///tmp/repo")
+
+                repository(url: "file:///tmp/repo")
+
+                pom.project {
+                    groupId 'com.zendesk'
+                    artifactId 'unityplugin'
+                    packaging 'aar'
+                    version '2.2.1'
+
+                    licenses {
+                        license {
+                            name 'Zendesk Master Subscription Agreement'
+                            url 'https://www.zendesk.com/company/customers-partners/#master-subscription-agreement'
+                            distribution 'repo'
+                            comments 'By downloading or using the Zendesk Mobile SDK, You agree to the Zendesk Master Subscription Agreement https://www.zendesk.com/company/customers-partners/#master-subscription-agreement and Application Developer and API License Agreement https://www.zendesk.com/company/customers-partners/#application-developer-api-license-agreement and acknowledge that such terms govern Your use of and access to the Mobile SDK.'
+                        }
+
+                        license {
+                            name 'Application Developer and API License Agreement'
+                            url 'https://www.zendesk.com/company/application-developer-and-api-license-agreement'
+                            distribution 'repo'
+                            comments 'By downloading or using the Zendesk Mobile SDK, You agree to the Zendesk Master Subscription Agreement https://www.zendesk.com/company/customers-partners/#master-subscription-agreement and Application Developer and API License Agreement https://www.zendesk.com/company/customers-partners/#application-developer-api-license-agreement and acknowledge that such terms govern Your use of and access to the Mobile SDK.'
+                        }
+                    }
+                }
+            }
         }
-        into "$rootProject.buildDir/unity-plugin/Plugins/Android"
-    }
-
-    // Strips css from sdk aar artifact, replaced by the css file in src/main/assets
-    tasks.stripCssFromAndroidSdk.execute()
-    print tasks.stripCssFromAndroidSdk.output()
-
-    // The aar from this project
-    copy {
-        from "$buildDir/outputs/aar/$project.name-release.aar"
-        into "$rootProject.buildDir/unity-plugin/Plugins/Android"
     }
 }
-
-/**
- * If a non-gradle build system is being used within Unity, then we have to remove the Guide CSS
- * file from the sdk artifact. AAPT will fail if we do not do this. bash -c is being invoked
- * because we want the sdk artifact to be globbed to prevent removing css files from other
- * artifacts.
- *
- * This is unlikely to be required when using the gradle build system, which is an option in
- * Unity 5.5 and later.
- *
- * This will not work on Windows. If you are trying to build on Windows, then do not call this
- * task from packagePlugin, and instead delete 'assets/help_center_article_style.css' from
- * $rootProject.buildDir/unity-plugin/Plugins/Android/sdk-a.b.c.d.aar
- */
-task stripCssFromAndroidSdk(type:Exec) {
-
-    /*
-        ignoreExitValue can be uncommented to get detailed error messaging if the zip task fails.
-        If the code is 12 then it is likely that zip cannot find the file, or the file has already
-        had the css file removed from it.
-    */
-    // ignoreExitValue true
-
-    workingDir "$rootProject.buildDir/unity-plugin/Plugins/Android"
-    println "$rootProject.buildDir/unity-plugin/Plugins/Android"
-
-
-    // This will work on Unix based systems with bash and zip available
-    commandLine 'bash', '-c', 'zip -d sdk-[0-9].[0-9]*.[0-9].[0-9].aar assets/help_center_article_style.css'
-
-
-    /*
-        On Windows we don't have zip.exe out of the box, so you will have to install zip.exe or
-        7za.exe as per README.md and then do something like this instead of the commandLine above
-     */
-
-    // zip.exe
-    // commandLine 'zip.exe', '-d', 'sdk-1.7.2.1', 'assets/help_center_article_style.css'
-
-    // 7za.exe
-    // commandLine '7za.exe', 'd', 'sdk-1.7.2.1', 'assets/help_center_article_style.css'
-
-    standardOutput = new ByteArrayOutputStream()
-
-    ext.output = {
-        return standardOutput.toString();
-    }
-}
-
-packagePlugin.dependsOn('clean')
-assemble.dependsOn packagePlugin

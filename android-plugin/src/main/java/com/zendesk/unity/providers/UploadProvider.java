@@ -4,16 +4,15 @@ import android.os.Environment;
 import android.util.Base64;
 import android.util.Log;
 
-
 import com.zendesk.logger.Logger;
-import com.zendesk.sdk.model.request.UploadResponse;
-import com.zendesk.sdk.network.impl.ZendeskConfig;
 import com.zendesk.unity.UnityComponent;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
+import zendesk.support.Support;
+import zendesk.support.UploadResponse;
 
 
 public class UploadProvider extends UnityComponent {
@@ -56,7 +55,7 @@ public class UploadProvider extends UnityComponent {
             Log.i("Zendesk Bridge", "Exception while reading the file");
         }
 
-        com.zendesk.sdk.network.UploadProvider provider = ZendeskConfig.INSTANCE.provider().uploadProvider();
+        zendesk.support.UploadProvider provider = Support.INSTANCE.provider().uploadProvider();
 
         provider.uploadAttachment(filename, fileUpload, contentType,
                 new ZendeskUnityCallback<UploadResponse>(gameObjectName, callbackId, "didUploadProviderUploadAttachment"));
@@ -64,7 +63,7 @@ public class UploadProvider extends UnityComponent {
 
     //deleteAttachment provider method
     public void deleteUpload(final String gameObjectName, String callbackId, String uploadToken){
-        com.zendesk.sdk.network.UploadProvider provider = ZendeskConfig.INSTANCE.provider().uploadProvider();
+        zendesk.support.UploadProvider provider = Support.INSTANCE.provider().uploadProvider();
 
         provider.deleteAttachment(uploadToken,
                 new ZendeskUnityCallback<Void>(gameObjectName, callbackId, "didUploadProviderDeleteUpload"));

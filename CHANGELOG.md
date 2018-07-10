@@ -1,3 +1,13 @@
+# v2.0.0
+
+## Support SDK versions
+* Updates native Android Support SDK to [2.0.1](https://developer.zendesk.com/embeddables/docs/android-support-sdk/release_notes#2.0.0). 
+This includes an all new ticketing UI. See the release notes for more detail.
+* Applies a style to each of the Android Activity classes in the AndroidManifest file, removing 
+the need to set a theme on the whole app. 
+* Makes use of the Unity Gradle build system, removing the need to build the plugin locally and 
+simplifying the integration. 
+
 # v1.11.2.1
 
 ## Support SDK versions

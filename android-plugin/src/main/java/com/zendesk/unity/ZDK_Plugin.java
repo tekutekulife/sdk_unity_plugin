@@ -8,31 +8,29 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.unity3d.player.UnityPlayer;
 import com.zendesk.logger.Logger;
-import com.zendesk.sdk.feedback.WrappedZendeskFeedbackConfiguration;
-import com.zendesk.sdk.feedback.ZendeskFeedbackConfiguration;
-import com.zendesk.sdk.feedback.ui.ContactZendeskActivity;
-import com.zendesk.sdk.model.access.AnonymousIdentity;
-import com.zendesk.sdk.model.access.Identity;
-import com.zendesk.sdk.model.access.JwtIdentity;
-import com.zendesk.sdk.model.helpcenter.Article;
-import com.zendesk.sdk.model.request.CustomField;
 import com.zendesk.sdk.network.impl.UserAgentHeaderUtil;
-import com.zendesk.sdk.network.impl.ZendeskConfig;
-import com.zendesk.sdk.requests.RequestActivity;
-import com.zendesk.sdk.support.ContactUsButtonVisibility;
-import com.zendesk.sdk.support.SupportActivity;
-import com.zendesk.sdk.support.ViewArticleActivity;
-import com.zendesk.service.ErrorResponse;
-import com.zendesk.service.ZendeskCallback;
 import com.zendesk.util.CollectionUtils;
 import com.zendesk.util.StringUtils;
 
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+
+import zendesk.core.AnonymousIdentity;
+import zendesk.core.Identity;
+import zendesk.core.JwtIdentity;
+import zendesk.core.Zendesk;
+import zendesk.support.CustomField;
+import zendesk.support.Support;
+import zendesk.support.guide.ArticleUiConfig;
+import zendesk.support.guide.HelpCenterActivity;
+import zendesk.support.guide.HelpCenterUiConfig;
+import zendesk.support.guide.ViewArticleActivity;
+import zendesk.support.request.RequestActivity;
+import zendesk.support.request.RequestUiConfig;
+import zendesk.support.requestlist.RequestListActivity;
 
 /**
  * Zendesk Plugin
@@ -41,12 +39,8 @@ public class ZDK_Plugin extends UnityComponent {
 
     private static final String LOG_TAG = "ZDK_Plugin";
 
-    private static final int CONTACT_US_BUTTON_VISIBILITY_OFF = 0;
     private static final int CONTACT_US_BUTTON_VISIBILITY_ARTICLE_LIST_ONLY = 1;
     private static final int CONTACT_US_BUTTON_VISIBILITY_ARTICLE_LIST_ARTICLE_VIEW = 2;
-
-    // Original behavior was to have article voting enabled
-    private boolean _articleVotingEnabled = true;
     
     public static ZDK_Plugin _instance;
     public static Object instance(){
@@ -55,9 +49,6 @@ public class ZDK_Plugin extends UnityComponent {
         }
         return _instance;
     }
-
-    //Used for RMA to tell RateMyAppActivity which method to show
-    public static boolean _rmaShowAlways;
 
     // this field is only useful when doing direct tests outside of Unity
     public Activity _activity;
@@ -85,52 +76,30 @@ public class ZDK_Plugin extends UnityComponent {
             return;
         }
 
-        ZendeskConfig.INSTANCE.init(activity.getApplication(), zendeskUrl, applicationId, oauthClientId);
+        Zendesk.INSTANCE.init(activity.getApplication(), zendeskUrl, applicationId, oauthClientId);
+        Support.INSTANCE.init(Zendesk.INSTANCE);
         UserAgentHeaderUtil.addUnitySuffix();
     }
 
     //authenticate anonymous identity with details
-    public void authenticateAnonymousIdentity(String name, String email){
+    public void authenticateAnonymousIdentity(String name, String email) {
         Identity anonymousIdentity = new AnonymousIdentity.Builder().withEmailIdentifier(email)
                 .withNameIdentifier(name)
                 .build();
-        ZendeskConfig.INSTANCE.setIdentity(anonymousIdentity);
+        Zendesk.INSTANCE.setIdentity(anonymousIdentity);
     }
 
     public void authenticateJwtUserIdentity(String jwtUserIdentity){
         Identity jwtIdentity = new JwtIdentity(jwtUserIdentity);
-        ZendeskConfig.INSTANCE.setIdentity(jwtIdentity);
-    }
-
-    public void setCoppaEnabled(boolean enabled) {
-        ZendeskConfig.INSTANCE.setCoppaEnabled(enabled);
-    }
-
-    public void setCustomFields(String jsonFields) {
-
-        Map<String, String> fields = getGson().fromJson(jsonFields, Map.class);
-
-        List<CustomField> customFields = new ArrayList<>(fields.entrySet().size());
-        for (Map.Entry<String, String> field: fields.entrySet()) {
-            customFields.add(new CustomField(Long.valueOf(field.getKey()), field.getValue()));
-        }
-        ZendeskConfig.INSTANCE.setCustomFields(customFields);
-    }
-
-    public String getCustomFields() {
-        return getGson().toJson(ZendeskConfig.INSTANCE.getCustomFields());
+        Zendesk.INSTANCE.setIdentity(jwtIdentity);
     }
 
     public void setUserLocale(String locale) {
         try {
-            ZendeskConfig.INSTANCE.setDeviceLocale(locale != null ? new Locale(locale) : null);
+            Support.INSTANCE.setHelpCenterLocaleOverride(locale != null ? new Locale(locale) : null);
         } catch (Exception ex) {
             Log.e("Zendesk", "failed setting user locale", ex);
         }
-    }
-
-    public void setArticleVotingEnabled(boolean enabled) {
-        _articleVotingEnabled = enabled;
     }
 
     // ##### ##### ##### ##### ##### ##### ##### #####
@@ -146,12 +115,13 @@ public class ZDK_Plugin extends UnityComponent {
     // ZDKHelpCenter
     // ##### ##### ##### ##### ##### ##### ##### #####
 
-    public void showHelpCenter(){
-        if(!checkInitialized())
+    public void showHelpCenter() {
+        if (!checkInitialized()) {
             return;
+        }
         getActivity().runOnUiThread(new Runnable() {
             public void run() {
-                new SupportActivity.Builder()
+                HelpCenterActivity.builder()
                         .show(getActivity());
             }
         });
@@ -159,73 +129,66 @@ public class ZDK_Plugin extends UnityComponent {
 
     public void showHelpCenter(boolean collapseCategories, final boolean showContactUsButton, String[] labelNames, long[] sectionIds, long[] categoryIds, final String[] tags, final String additionalInfo, final String requestSubject) {
         
-            showHelpCenter(collapseCategories, CONTACT_US_BUTTON_VISIBILITY_ARTICLE_LIST_ARTICLE_VIEW, labelNames, sectionIds, categoryIds, tags, additionalInfo, requestSubject, true);
+            showHelpCenter(collapseCategories, CONTACT_US_BUTTON_VISIBILITY_ARTICLE_LIST_ARTICLE_VIEW, labelNames, sectionIds, categoryIds, tags, requestSubject);
         }
     
     public void showHelpCenter(boolean collapseCategories, final int contactUsButtonVisibility,
                                     String[] labelNames, long[] sectionIds, long[] categoryIds,
-                                    final String[] tags, final String additionalInfo, final String requestSubject,
-                                    boolean articleVoting) {
+                                    final String[] tags, final String requestSubject) {
 
         if(!checkInitialized()) {
             return;
         }
 
-        final SupportActivity.Builder builder = new SupportActivity.Builder();
-            
-        ContactUsButtonVisibility visibility = ContactUsButtonVisibility.ARTICLE_LIST_AND_ARTICLE;
-        if (contactUsButtonVisibility == CONTACT_US_BUTTON_VISIBILITY_OFF) {
-            visibility = ContactUsButtonVisibility.OFF;
-        } else if (contactUsButtonVisibility == CONTACT_US_BUTTON_VISIBILITY_ARTICLE_LIST_ONLY) {
-            visibility = ContactUsButtonVisibility.ARTICLE_LIST_ONLY;
+        final HelpCenterUiConfig.Builder helpCenterUiBuilder = HelpCenterActivity.builder()
+                .withLabelNames(labelNames)
+                .withCategoriesCollapsed(collapseCategories);
+        final ArticleUiConfig.Builder articleUiBuilder = ViewArticleActivity.builder();
+
+        if (contactUsButtonVisibility != CONTACT_US_BUTTON_VISIBILITY_ARTICLE_LIST_ARTICLE_VIEW) {
+            articleUiBuilder.withContactUsButtonVisible(false);
+        }
+        if (contactUsButtonVisibility == CONTACT_US_BUTTON_VISIBILITY_ARTICLE_LIST_ONLY) {
+            helpCenterUiBuilder.withContactUsButtonVisible(false);
         }
 
-        builder
-                .withCategoriesCollapsed(collapseCategories)
-                .withContactUsButtonVisibility(visibility)
-                .withLabelNames(labelNames)
-                .withArticleVoting(articleVoting);
-
         if (sectionIds != null && sectionIds.length > 0) {
-            builder.withArticlesForSectionIds(sectionIds);
+            helpCenterUiBuilder.withArticlesForSectionIds(longArrayToObjectList(sectionIds));
         }
 
         if (categoryIds != null && categoryIds.length > 0) {
-            builder.withArticlesForCategoryIds(categoryIds);
+            helpCenterUiBuilder.withArticlesForCategoryIds(longArrayToObjectList(categoryIds));
         }
 
-        if (StringUtils.hasLength(additionalInfo) || StringUtils.hasLength(requestSubject) || CollectionUtils.isNotEmpty(tags)) {
-
-            builder.withContactConfiguration(new ZendeskFeedbackConfiguration() {
-                @Override
-                public List<String> getTags() {
-                    return tags == null ? new ArrayList<String>() : Arrays.asList(tags);
-                }
-
-                @Override
-                public String getAdditionalInfo() {
-                    return additionalInfo;
-                }
-
-                @Override
-                public String getRequestSubject() {
-                    return requestSubject;
-                }
-            });
+        final RequestUiConfig.Builder requestUiBuilder = RequestActivity.builder();
+        if (StringUtils.hasLength(requestSubject)) {
+            requestUiBuilder.withRequestSubject(requestSubject);
+        }
+        if (CollectionUtils.isNotEmpty(tags)) {
+            requestUiBuilder.withTags(tags);
         }
 
         getActivity().runOnUiThread(new Runnable() {
-
             @Override
             public void run() {
-                builder.show(getActivity());
+                helpCenterUiBuilder.show(getActivity(),
+                        articleUiBuilder.config(),
+                        requestUiBuilder.config());
             }
         });
 
     }
 
+    private List<Long> longArrayToObjectList(long[] longs) {
+        List<Long> list = new ArrayList<>(longs.length);
+        for (long aLong: longs) {
+            list.add(aLong);
+        }
+        return list;
+    }
+
     private boolean checkInitialized() {
-        if (ZendeskConfig.INSTANCE.isInitialized()) {
+        if (Support.INSTANCE.isInitialized()) {
             return true;
         }
         Log.e("Zendesk Unity", "Zendesk SDK must be initialized before doing anything else! Did you call ZendeskSDK.ZDKConfig.Initialize(...)?");
@@ -233,25 +196,8 @@ public class ZDK_Plugin extends UnityComponent {
     }
 
     public void viewArticle(final String id){
-        Long idLong = Long.valueOf(id);
-        com.zendesk.sdk.network.HelpCenterProvider provider = ZendeskConfig.INSTANCE.provider().helpCenterProvider();
-
-        provider.getArticle(idLong, new ZendeskCallback<Article>() {
-            @Override
-            public void onSuccess(Article article) {
-                ViewArticleActivity.startActivity(
-                        getActivity(),
-                        article,
-                        true, // By default enable add ticket button, might allow customization later
-                        null, // TODO: add further customization here
-                        _articleVotingEnabled);
-            }
-
-            @Override
-            public void onError(ErrorResponse errorResponse) {
-                Log.i("Zendesk Unity", "Something went wrong in trying to view article");
-            }
-        });
+        ViewArticleActivity.builder(Long.valueOf(id))
+                .show(getActivity());
     }
 
 
@@ -265,47 +211,8 @@ public class ZDK_Plugin extends UnityComponent {
 
         getActivity().runOnUiThread(new Runnable() {
             public void run() {
-                ContactZendeskActivity.startActivity(getActivity(), null);
-            }
-        });
-    }
-
-    public void showRequestCreationWithConfig(final String requestSubject, final String[] tags, final String additionalInfo){
-        if(!checkInitialized())
-            return;
-
-        getActivity().runOnUiThread(new Runnable() {
-            public void run() {
-
-                ContactZendeskActivity.startActivity(getActivity(), new WrappedZendeskFeedbackConfiguration(
-                        new ZendeskFeedbackConfiguration() {
-                            @Override
-                            public List<String> getTags() {
-                                return tags == null ? null : Arrays.asList(tags);
-                            }
-
-                            @Override
-                            public String getAdditionalInfo() {
-                                return additionalInfo;
-                            }
-
-                            @Override
-                            public String getRequestSubject() {
-                                return requestSubject;
-                            }
-                        }
-                ));
-            }
-        });
-    }
-
-    public void showRequestList() {
-        if(!checkInitialized())
-            return;
-
-        getActivity().runOnUiThread(new Runnable() {
-            public void run() {
-                RequestActivity.startActivity(getActivity(), null);
+                RequestActivity.builder()
+                        .show(getActivity());
             }
         });
     }
@@ -321,22 +228,66 @@ public class ZDK_Plugin extends UnityComponent {
      *  @see <a href="https://developer.zendesk.com/embeddables/docs/ios/providers#using-custom-fields-and-custom-forms">Custom fields and forms documentation</a>
      *  @since 1.0.0.1
      */
-    public void setTicketFormId(String ticketFormId) {
-        if (!checkInitialized()) {
+    public void showRequestCreationWithConfig(final String requestSubject, final String[] tags,
+                                              final String jsonFields, final String ticketFormId) {
+        if(!checkInitialized())
             return;
+
+        final RequestUiConfig.Builder builder = RequestActivity.builder()
+                .withTags(tags)
+                .withRequestSubject(requestSubject);
+
+        Map<String, String> fields = getGson().fromJson(jsonFields, Map.class);
+
+        List<CustomField> customFields = new ArrayList<>(fields.entrySet().size());
+        for (Map.Entry<String, String> field: fields.entrySet()) {
+            customFields.add(new CustomField(Long.valueOf(field.getKey()), field.getValue()));
         }
 
-        Long formId = null;
+        if (CollectionUtils.isNotEmpty(customFields)) {
+            Long formId = null;
 
-        try {
-            formId = Long.valueOf(ticketFormId);
-        } catch (NumberFormatException e) {
-            Logger.e(LOG_TAG, "The supplied ticketFormId was not a number", e);
+            try {
+                formId = Long.valueOf(ticketFormId);
+            } catch (NumberFormatException e) {
+                Logger.e(LOG_TAG, "The supplied ticketFormId was not a number", e);
+            }
+
+            if (formId != null) {
+                builder.withTicketForm(formId, customFields);
+            }
         }
 
-        if (formId != null) {
-            ZendeskConfig.INSTANCE.setTicketFormId(formId);
-        }
+        getActivity().runOnUiThread(new Runnable() {
+            public void run() {
+                builder.show(getActivity());
+            }
+        });
+    }
+
+    public void showRequest(final String requestId) {
+        if(!checkInitialized())
+            return;
+
+        getActivity().runOnUiThread(new Runnable() {
+            public void run() {
+                RequestActivity.builder()
+                        .withRequestId(requestId)
+                        .show(getActivity());
+            }
+        });
+    }
+
+    public void showRequestList() {
+        if(!checkInitialized())
+            return;
+
+        getActivity().runOnUiThread(new Runnable() {
+            public void run() {
+                RequestListActivity.builder()
+                        .show(getActivity());
+            }
+        });
     }
 
     private Gson getGson() {

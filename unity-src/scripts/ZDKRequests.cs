@@ -31,10 +31,17 @@ namespace ZendeskSDK {
 		/// </summary>
 		public string RequestSubject;
 
+		// contents of StateRequestTicketForm
+		public Hashtable CustomFields;
+
+		public string TicketFormId;
+
 		public ZDKRequestCreationConfig() {
 			Tags = null;
 			AdditionalRequestInfo = null;
 			RequestSubject = null;
+			CustomFields = null;
+			TicketFormId = null;
 		}
 	}
 
@@ -79,7 +86,8 @@ namespace ZendeskSDK {
 					config.AdditionalRequestInfo);
 				_zendeskRequestsShowRequestCreation();
 				#elif UNITY_ANDROID
-				instance().DoAndroid("showRequestCreationWithConfig", config.RequestSubject, config.Tags, config.AdditionalRequestInfo);
+				instance().DoAndroid("showRequestCreationWithConfig", config.RequestSubject, config.Tags,
+				    ZenJSON.Serialize(config.CustomFields), config.TicketFormId);
                 #endif
 			}
 		}

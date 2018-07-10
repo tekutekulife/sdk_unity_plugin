@@ -5,21 +5,6 @@ import android.support.annotation.NonNull;
 
 import com.google.gson.Gson;
 import com.zendesk.logger.Logger;
-import com.zendesk.sdk.model.helpcenter.Article;
-import com.zendesk.sdk.model.helpcenter.ArticleVote;
-import com.zendesk.sdk.model.helpcenter.Attachment;
-import com.zendesk.sdk.model.helpcenter.AttachmentType;
-import com.zendesk.sdk.model.helpcenter.Category;
-import com.zendesk.sdk.model.helpcenter.FlatArticle;
-import com.zendesk.sdk.model.helpcenter.HelpCenterSearch;
-import com.zendesk.sdk.model.helpcenter.ListArticleQuery;
-import com.zendesk.sdk.model.helpcenter.SearchArticle;
-import com.zendesk.sdk.model.helpcenter.Section;
-import com.zendesk.sdk.model.helpcenter.SortBy;
-import com.zendesk.sdk.model.helpcenter.SortOrder;
-import com.zendesk.sdk.model.helpcenter.SuggestedArticleResponse;
-import com.zendesk.sdk.model.helpcenter.SuggestedArticleSearch;
-import com.zendesk.sdk.network.impl.ZendeskConfig;
 import com.zendesk.unity.UnityComponent;
 import com.zendesk.util.CollectionUtils;
 import com.zendesk.util.StringUtils;
@@ -27,6 +12,22 @@ import com.zendesk.util.StringUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+
+import zendesk.support.Article;
+import zendesk.support.ArticleVote;
+import zendesk.support.AttachmentType;
+import zendesk.support.Category;
+import zendesk.support.FlatArticle;
+import zendesk.support.HelpCenterAttachment;
+import zendesk.support.HelpCenterSearch;
+import zendesk.support.ListArticleQuery;
+import zendesk.support.SearchArticle;
+import zendesk.support.Section;
+import zendesk.support.SortBy;
+import zendesk.support.SortOrder;
+import zendesk.support.SuggestedArticleResponse;
+import zendesk.support.SuggestedArticleSearch;
+import zendesk.support.Support;
 
 public class HelpCenterProvider extends UnityComponent {
 
@@ -48,28 +49,28 @@ public class HelpCenterProvider extends UnityComponent {
     }
 
     public void getCategories(final String gameObjectName, String callbackId){
-        com.zendesk.sdk.network.HelpCenterProvider provider = ZendeskConfig.INSTANCE.provider().helpCenterProvider();
+        zendesk.support.HelpCenterProvider provider = Support.INSTANCE.provider().helpCenterProvider();
 
         provider.getCategories(
                 new ZendeskUnityCallback<List<Category>>(gameObjectName, callbackId, "didHelpCenterProviderGetCategories"));
     }
 
     public void getSectionsForCategory(final String gameObjectName, String callbackId, String categoryId){
-        com.zendesk.sdk.network.HelpCenterProvider provider = ZendeskConfig.INSTANCE.provider().helpCenterProvider();
+        zendesk.support.HelpCenterProvider provider = Support.INSTANCE.provider().helpCenterProvider();
 
         provider.getSections(parseLong(categoryId),
                 new ZendeskUnityCallback<List<Section>>(gameObjectName, callbackId, "didHelpCenterProviderGetSectionsForCategoryId"));
     }
 
     public void getArticlesForSection(final String gameObjectName, String callbackId, String sectionId){
-        com.zendesk.sdk.network.HelpCenterProvider provider = ZendeskConfig.INSTANCE.provider().helpCenterProvider();
+        zendesk.support.HelpCenterProvider provider = Support.INSTANCE.provider().helpCenterProvider();
 
         provider.getArticles(parseLong(sectionId),
                 new ZendeskUnityCallback<List<Article>>(gameObjectName, callbackId, "didHelpCenterProviderGetArticlesForSectionId"));
     }
 
     public void searchArticlesUsingQuery(final String gameObjectName, String callbackId, String query){
-        com.zendesk.sdk.network.HelpCenterProvider provider = ZendeskConfig.INSTANCE.provider().helpCenterProvider();
+        zendesk.support.HelpCenterProvider provider = Support.INSTANCE.provider().helpCenterProvider();
         HelpCenterSearch helpCenterSearch = new HelpCenterSearch.Builder().withQuery(query).build();
 
         provider.searchArticles(helpCenterSearch,
@@ -77,7 +78,7 @@ public class HelpCenterProvider extends UnityComponent {
     }
 
     public void searchArticlesUsingQueryAndLabels(final String gameObjectName, String callbackId, String query, String[] labelsArray, int labelsLength){
-        com.zendesk.sdk.network.HelpCenterProvider provider = ZendeskConfig.INSTANCE.provider().helpCenterProvider();
+        zendesk.support.HelpCenterProvider provider = Support.INSTANCE.provider().helpCenterProvider();
         HelpCenterSearch helpCenterSearch = new HelpCenterSearch.Builder().withQuery(query).withLabelNames(labelsArray).build();
 
         provider.searchArticles(helpCenterSearch,
@@ -90,7 +91,7 @@ public class HelpCenterProvider extends UnityComponent {
                                                     String[] categoryIds, int categoryIdsLength,
                                                     String sectionIds[], int sectionIdsLength,
                                                     int page, int per_page){
-        com.zendesk.sdk.network.HelpCenterProvider provider = ZendeskConfig.INSTANCE.provider().helpCenterProvider();
+        zendesk.support.HelpCenterProvider provider = Support.INSTANCE.provider().helpCenterProvider();
         HelpCenterSearch.Builder helpCenterSearchBuilder = new HelpCenterSearch.Builder();
 
         //Check to see if values where actually passed in to build HelpCenterSearch
@@ -163,7 +164,7 @@ public class HelpCenterProvider extends UnityComponent {
     }
 
     public void getAttachmentsForArticle(final String gameObjectName, String callbackId, String articleId, String type){
-        com.zendesk.sdk.network.HelpCenterProvider provider = ZendeskConfig.INSTANCE.provider().helpCenterProvider();
+        zendesk.support.HelpCenterProvider provider = Support.INSTANCE.provider().helpCenterProvider();
 
         AttachmentType attachmentType = null;
         if ("inline".equalsIgnoreCase(type))
@@ -172,12 +173,13 @@ public class HelpCenterProvider extends UnityComponent {
             attachmentType = AttachmentType.BLOCK;
 
         provider.getAttachments(parseLong(articleId), attachmentType,
-                new ZendeskUnityCallback<List<Attachment>>(gameObjectName, callbackId, "didHelpCenterProviderGetAttachmentsForArticleId"));
+                new ZendeskUnityCallback<List<HelpCenterAttachment>>(gameObjectName, callbackId,
+                        "didHelpCenterProviderGetAttachmentsForArticleId"));
     }
 
     public void getArticles(final String gameObjectName, String callbackId, String[] labelsArray, int labelsLength,
                             String include, String locale, int page, int resultsPerPage, int sortBy, int sortOrder){
-        com.zendesk.sdk.network.HelpCenterProvider provider = ZendeskConfig.INSTANCE.provider().helpCenterProvider();
+        zendesk.support.HelpCenterProvider provider = Support.INSTANCE.provider().helpCenterProvider();
 
         ListArticleQuery query = new ListArticleQuery();
         query.setLabelNames(StringUtils.toCsvString(labelsArray));
@@ -195,7 +197,7 @@ public class HelpCenterProvider extends UnityComponent {
 
     public void getFlatArticles(final String gameObjectName, String callbackId, String[] labelsArray, int labelsLength,
                                 String include, String locale, int page, int resultsPerPage, int sortBy, int sortOrder){
-        com.zendesk.sdk.network.HelpCenterProvider provider = ZendeskConfig.INSTANCE.provider().helpCenterProvider();
+        zendesk.support.HelpCenterProvider provider = Support.INSTANCE.provider().helpCenterProvider();
 
         ListArticleQuery query = new ListArticleQuery();
         query.setLabelNames(StringUtils.toCsvString(labelsArray));
@@ -213,7 +215,7 @@ public class HelpCenterProvider extends UnityComponent {
 
     public void getSuggestedArticles(final String gameObjectName, String callbackId, String query,
                                                               String[] labelsArray, int labelsLength, String locale, int categoryId, int sectionId){
-        com.zendesk.sdk.network.HelpCenterProvider provider = ZendeskConfig.INSTANCE.provider().helpCenterProvider();
+        zendesk.support.HelpCenterProvider provider = Support.INSTANCE.provider().helpCenterProvider();
 
         SuggestedArticleSearch.Builder queryBuilder = new SuggestedArticleSearch.Builder()
                 .withQuery(query)
@@ -232,42 +234,42 @@ public class HelpCenterProvider extends UnityComponent {
     }
 
     public void getArticle(final String gameObjectName, String callbackId, final String id){
-        com.zendesk.sdk.network.HelpCenterProvider provider = ZendeskConfig.INSTANCE.provider().helpCenterProvider();
+        zendesk.support.HelpCenterProvider provider = Support.INSTANCE.provider().helpCenterProvider();
 
         provider.getArticle(parseLong(id),
                 new ZendeskUnityCallback<Article>(gameObjectName, callbackId, "didHelpCenterGetArticle"));
     }
 
     public void getSection(final String gameObjectName, String callbackId, final String id){
-        com.zendesk.sdk.network.HelpCenterProvider provider = ZendeskConfig.INSTANCE.provider().helpCenterProvider();
+        zendesk.support.HelpCenterProvider provider = Support.INSTANCE.provider().helpCenterProvider();
 
         provider.getSection(parseLong(id),
                 new ZendeskUnityCallback<Section>(gameObjectName, callbackId, "didHelpCenterGetSection"));
     }
 
     public void getCategory(final String gameObjectName, String callbackId, final String id){
-        com.zendesk.sdk.network.HelpCenterProvider provider = ZendeskConfig.INSTANCE.provider().helpCenterProvider();
+        zendesk.support.HelpCenterProvider provider = Support.INSTANCE.provider().helpCenterProvider();
 
         provider.getCategory(parseLong(id),
                 new ZendeskUnityCallback<Category>(gameObjectName, callbackId, "didHelpCenterGetCategory"));
     }
 
     public void upvoteArticle(final String gameObjectName, String callbackId, final String id){
-        com.zendesk.sdk.network.HelpCenterProvider provider = ZendeskConfig.INSTANCE.provider().helpCenterProvider();
+        zendesk.support.HelpCenterProvider provider = Support.INSTANCE.provider().helpCenterProvider();
 
         provider.upvoteArticle(parseLong(id),
                 new ZendeskUnityCallback<ArticleVote>(gameObjectName, callbackId, "didHelpCenterUpvoteArticle"));
     }
 
     public void downvoteArticle(final String gameObjectName, String callbackId, final String id){
-        com.zendesk.sdk.network.HelpCenterProvider provider = ZendeskConfig.INSTANCE.provider().helpCenterProvider();
+        zendesk.support.HelpCenterProvider provider = Support.INSTANCE.provider().helpCenterProvider();
 
         provider.downvoteArticle(parseLong(id),
                 new ZendeskUnityCallback<ArticleVote>(gameObjectName, callbackId, "didHelpCenterDownvoteArticle"));
     }
 
     public void deleteVote(final String gameObjectName, String callbackId, final String id){
-        com.zendesk.sdk.network.HelpCenterProvider provider = ZendeskConfig.INSTANCE.provider().helpCenterProvider();
+        zendesk.support.HelpCenterProvider provider = Support.INSTANCE.provider().helpCenterProvider();
 
         provider.deleteVote(parseLong(id),
                 new ZendeskUnityCallback<Void>(gameObjectName, callbackId, "didHelpCenterDeleteVote"));
@@ -275,7 +277,7 @@ public class HelpCenterProvider extends UnityComponent {
 
     public void submitRecordArticleView(final String gameObjectName, String callbackId, final String id, final String htmlUrl, final String title, final String localeId){
         Locale locale = localeId != null ? new Locale(localeId) : null;
-        com.zendesk.sdk.network.HelpCenterProvider provider = ZendeskConfig.INSTANCE.provider().helpCenterProvider();
+        zendesk.support.HelpCenterProvider provider = Support.INSTANCE.provider().helpCenterProvider();
 
         Article article = new Gson().fromJson(buildArticleJson(id, htmlUrl, title), Article.class);
         provider.submitRecordArticleView(article, locale, new ZendeskUnityCallback<Void>(gameObjectName, callbackId, "didHelpCenterSubmitRecordArticleView"));

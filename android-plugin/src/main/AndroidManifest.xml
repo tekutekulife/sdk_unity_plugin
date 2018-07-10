@@ -1,10 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.zendesk.unity">
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.zendesk.unity.sdk">
+
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
     <application
         android:allowBackup="true"
         android:label="@string/app_name"
-        />
+        tools:replace="android:label">
+        <activity
+            android:name="com.unity3d.player.UnityPlayerActivity"
+            android:label="@string/app_name">
+            <meta-data
+                android:name="unityplayer.ForwardNativeEventsToDalvik"
+                android:value="true" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
 
+        <activity
+            android:name="zendesk.support.request.RequestActivity"
+            android:theme="@style/UnityTheme"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name="zendesk.support.guide.ViewArticleActivity"
+            android:configChanges="orientation|screenSize"
+            android:label="@string/zs_view_article_loading_title"
+            android:theme="@style/UnityTheme" />
+
+        <activity
+            android:name="zendesk.support.guide.HelpCenterActivity"
+            android:label="@string/support_activity_title"
+            android:theme="@style/UnityTheme"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
+            android:name="zendesk.support.requestlist.RequestListActivity"
+            android:label="@string/request_list_activity_title"
+            android:theme="@style/UnityTheme" />
+
+    </application>
 </manifest>

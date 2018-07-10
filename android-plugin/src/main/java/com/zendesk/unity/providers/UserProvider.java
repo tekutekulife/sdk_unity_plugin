@@ -1,15 +1,16 @@
 package com.zendesk.unity.providers;
 
 import com.google.gson.internal.LinkedTreeMap;
-import com.zendesk.sdk.model.request.User;
-import com.zendesk.sdk.model.request.UserField;
-import com.zendesk.sdk.network.impl.ZendeskConfig;
 import com.zendesk.unity.UnityComponent;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+
+import zendesk.core.User;
+import zendesk.core.UserField;
+import zendesk.core.Zendesk;
 
 public class UserProvider extends UnityComponent {
 
@@ -20,7 +21,7 @@ public class UserProvider extends UnityComponent {
     }
 
     public void addTags(final String gameObjectName, String callbackId, String[] tags, int tagsLength){
-        com.zendesk.sdk.network.UserProvider provider = ZendeskConfig.INSTANCE.provider().userProvider();
+        zendesk.core.UserProvider provider = Zendesk.INSTANCE.provider().userProvider();
         ArrayList<String> tagsList = new ArrayList<>(Arrays.asList(tags));
 
         provider.addTags(tagsList,
@@ -28,7 +29,7 @@ public class UserProvider extends UnityComponent {
     }
 
     public void deleteTags(final String gameObjectName, String callbackId, String[] tags, int tagsLength){
-        com.zendesk.sdk.network.UserProvider provider = ZendeskConfig.INSTANCE.provider().userProvider();
+        zendesk.core.UserProvider provider = Zendesk.INSTANCE.provider().userProvider();
         ArrayList<String> tagsList = new ArrayList<>(Arrays.asList(tags));
 
         provider.deleteTags(tagsList,
@@ -36,20 +37,20 @@ public class UserProvider extends UnityComponent {
     }
 
     public void getUser(final String gameObjectName, String callbackId){
-        com.zendesk.sdk.network.UserProvider provider = ZendeskConfig.INSTANCE.provider().userProvider();
+        zendesk.core.UserProvider provider = Zendesk.INSTANCE.provider().userProvider();
 
         provider.getUser(new ZendeskUnityCallback<User>(gameObjectName, callbackId, "didUserProviderGetUser"));
     }
 
     public void getUserFields(final String gameObjectName, String callbackId){
-        com.zendesk.sdk.network.UserProvider provider = ZendeskConfig.INSTANCE.provider().userProvider();
+        zendesk.core.UserProvider provider = Zendesk.INSTANCE.provider().userProvider();
 
         provider.getUserFields(new ZendeskUnityCallback<List<UserField>>(gameObjectName, callbackId, "didUserProviderGetUserFields"));
     }
 
     @SuppressWarnings("unchecked")
     public void setUserFields(final String gameObjectName, String callbackId, String userFields){
-        com.zendesk.sdk.network.UserProvider provider = ZendeskConfig.INSTANCE.provider().userProvider();
+        zendesk.core.UserProvider provider = Zendesk.INSTANCE.provider().userProvider();
         Map<String,String> userFieldMap = gson().fromJson(userFields, LinkedTreeMap.class);
 
         provider.setUserFields(userFieldMap,
