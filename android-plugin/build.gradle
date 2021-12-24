@@ -14,7 +14,7 @@ buildscript {
 
 repositories {
     jcenter()
-    maven { url 'https://zendesk.artifactoryonline.com/zendesk/repo'}
+    maven { url 'https://zendesk.jfrog.io/artifactory/repo'}
 }
 
 apply plugin: 'com.android.library'

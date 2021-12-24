@@ -232,7 +232,7 @@ public class ZDK_Plugin extends UnityComponent {
         return false;
     }
 
-    public void viewArticle(final String id){
+    public void viewArticle(final String id, final boolean enableTicketButton){
         Long idLong = Long.valueOf(id);
         com.zendesk.sdk.network.HelpCenterProvider provider = ZendeskConfig.INSTANCE.provider().helpCenterProvider();
 
@@ -242,7 +242,7 @@ public class ZDK_Plugin extends UnityComponent {
                 ViewArticleActivity.startActivity(
                         getActivity(),
                         article,
-                        true, // By default enable add ticket button, might allow customization later
+                        enableTicketButton, // By default enable add ticket button, might allow customization later
                         null, // TODO: add further customization here
                         _articleVotingEnabled);
             }
